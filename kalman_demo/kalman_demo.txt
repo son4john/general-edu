@@ -1,0 +1,62 @@
+Kalman Filter Demo — Explanation
+==================================
+
+The scenario: A car drives in a straight line at constant speed. You have a GPS sensor
+that measures position, but GPS is noisy — each reading is the true position plus random error.
+
+
+THE TWO PLOTS
+--------------
+
+Top — Position over time:
+  - Green line       = the true position (what's really happening, unknowable in real life)
+  - Red dots         = raw noisy GPS readings (what you actually receive)
+  - Blue line        = the Kalman filter's best estimate
+  - Blue shaded band = the filter's uncertainty (±2σ)
+
+The key insight is that the blue line tracks the green truth much more closely than the
+scattered red dots. The filter achieves this by combining two sources of info: the noisy
+measurement AND a physics model ("the car keeps moving at roughly the same speed").
+
+Bottom — Uncertainty over time:
+  - Starts high (the filter knows nothing at first)
+  - Drops sharply as the first few measurements arrive
+  - Plateaus — eventually more measurements stop helping because process noise
+    (the model's own imprecision) becomes the bottleneck
+
+
+THE CORE IDEA
+--------------
+
+The Kalman filter runs this two-step loop every time step:
+
+  1. PREDICT — use your motion model to guess where the object is now
+  2. UPDATE  — blend that prediction with the new (noisy) sensor reading,
+               weighted by how much you trust each one
+
+The "trust" weighting is the Kalman gain:
+  - If the sensor is very noisy  → lean on the model
+  - If the model is uncertain    → lean on the sensor
+
+The filter continuously adjusts this balance, which is why it outperforms
+simply averaging the raw GPS readings.
+
+
+KEY MATRICES (from the code)
+------------------------------
+
+  F  — State transition matrix: describes how the state evolves over time
+       (position advances by velocity * dt; velocity stays the same)
+
+  H  — Measurement matrix: maps the state to what the sensor actually sees
+       (we can only observe position, not velocity)
+
+  Q  — Process noise covariance: how much we trust our motion model
+
+  R  — Measurement noise covariance: how noisy the GPS sensor is
+
+  K  — Kalman gain: computed each step; controls how much the new
+       measurement shifts the estimate vs. keeping the prediction
+
+  P  — Error covariance: the filter's current uncertainty about the state
+       (this is what shrinks over time in the bottom plot)
